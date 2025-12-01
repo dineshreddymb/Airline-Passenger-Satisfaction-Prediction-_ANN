@@ -1,11 +1,9 @@
-# app.py -- Airline Satisfaction (Airport Runway Theme - Daytime)
-import os, sys, logging, warnings
+import os, logging, warnings, sys
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 logging.getLogger("absl").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", message="missing ScriptRunContext")
 
-# ensure current directory is on path (helps when deploying custom transformers)
-sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.path.dirname(__file__))  # IMPORTANT for custom transformer on Streamlit Cloud
 
 import streamlit as st
 import pandas as pd
@@ -14,15 +12,10 @@ from tensorflow.keras.models import load_model
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import LabelEncoder
 
-# ---------------------------
-# Prayer lines (user preference)
-# ---------------------------
-st.write("Radhe Radhe 🙏 Jai Shri Radhe Krishna 🌸")
-st.write("Narayana Akhila Guru Bhagavan Sharanam 🕉️")
 
-# ---------------------------
-# Custom LabelEncoderTransformer (must match training)
-# ---------------------------
+# ------------------------------------------------------
+# Custom LabelEncoder Transformer (same as training)
+# ------------------------------------------------------
 class LabelEncoderTransformer(BaseEstimator, TransformerMixin):
     def __init__(self):
         self.encoders = {}
@@ -41,265 +34,188 @@ class LabelEncoderTransformer(BaseEstimator, TransformerMixin):
             X[col] = self.encoders[col].transform(X[col].astype(str))
         return X
 
-# ---------------------------
-# Page config
-# ---------------------------
-st.set_page_config(page_title="Airline Satisfaction (Runway)", page_icon="✈️", layout="wide")
 
-# ---------------------------
-# Runway Theme CSS + HTML + Animations
-# ---------------------------
+# ------------------------------------------------------
+# Streamlit UI Configuration
+# ------------------------------------------------------
+st.set_page_config(page_title="Airline Satisfaction", page_icon="✈️", layout="wide")
+
+
+# ------------------------------------------------------
+# Starfield Background + 3D Floating Title + Glass UI
+# ------------------------------------------------------
 st.markdown("""
 <style>
-/* base */
-html, body, [data-testid="stAppViewContainer"] {
-  background: linear-gradient(#cfe9ff, #f8fbff);
-  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  overflow-x: hidden;
+
+body {
+    background: black !important;
+    overflow: hidden;
+    font-family: "Poppins", sans-serif;
 }
 
-/* central container spacing */
-.main-container {
-  padding: 12px 20px;
+@keyframes starPulse {
+    0% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+    100% { opacity: 0.2; transform: scale(1); }
 }
 
-/* runway area */
-.runway-wrap {
-  display:flex;
-  justify-content:center;
-  margin-bottom:18px;
-}
-.runway {
-  position: relative;
-  width: 92%;
-  height: 220px;
-  background: linear-gradient(#6b6b6b, #4f4f4f);
-  border-radius: 8px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
-  overflow: hidden;
-  border: 2px solid rgba(0,0,0,0.12);
+.star {
+    position: fixed;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(255,255,255,0.8);
+    animation: starPulse 3s infinite ease-in-out;
 }
 
-/* runway center stripe (repeated) */
-.runway::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 100%;
-  background-image: linear-gradient(180deg, rgba(255,255,255,0.92) 0 8px, rgba(255,255,255,0) 8px);
-  background-size: 120px 24px; /* stripe spacing */
-  opacity: 0.95;
+@keyframes float3D {
+    0%   { transform: translateY(0px) rotateX(0deg); }
+    50%  { transform: translateY(-18px) rotateX(8deg); }
+    100% { transform: translateY(0px) rotateX(0deg); }
 }
 
-/* side markings (threshold) */
-.threshold-left, .threshold-right {
-  position:absolute;
-  top: 0;
-  width: 6%;
-  height: 100%;
-  background: repeating-linear-gradient(
-      to bottom,
-      rgba(255,255,255,0.95) 0 24px,
-      rgba(255,255,255,0.0) 24px 48px
-  );
-  opacity: 0.8;
-}
-.threshold-left { left: 2%; transform: skewX(-6deg); }
-.threshold-right { right: 2%; transform: skewX(6deg); }
-
-/* taxiway side (green grass) */
-.grass-left, .grass-right {
-  position:absolute;
-  top:0;
-  height:100%;
-  width:10%;
-  background: linear-gradient(#7ed957, #5fc33b);
-  filter: saturate(0.95);
-  opacity: 0.98;
-}
-.grass-left { left: -10%; border-radius: 0 8px 8px 0; }
-.grass-right { right: -10%; border-radius: 8px 0 0 8px; }
-
-/* runway lights - two sides, animated "glow" moving */
-.runway-lights {
-  position:absolute;
-  bottom:10px;
-  left:0; right:0;
-  height:20px;
-  pointer-events: none;
-}
-.light {
-  position: absolute;
-  width:8px; height:8px;
-  border-radius:50%;
-  background: rgba(255,230,120,0.95);
-  box-shadow: 0 0 8px rgba(255,200,90,0.9);
-  transform: translateY(0);
-  opacity: 0.95;
-  animation: pulse 2.2s infinite;
-}
-@keyframes pulse {
-  0% { transform: translateY(0px); opacity: 0.6; }
-  50% { transform: translateY(-3px); opacity: 1; }
-  100% { transform: translateY(0px); opacity: 0.6; }
+@keyframes titlepop {
+    0% { opacity:0; transform:scale(0.6); }
+    100% { opacity:1; transform:scale(1); }
 }
 
-/* plane rolling animation */
-.plane {
-  position: absolute;
-  bottom: 60px;
-  left: -18%;
-  width: 180px;
-  transform: rotate(-2deg);
-  animation: planeRoll 6s linear infinite;
-  z-index: 5;
-}
-@keyframes planeRoll {
-  0% { left: -22%; transform: translateY(0) scale(0.9) rotate(-2deg); opacity: 0.95; }
-  50% { left: 60%; transform: translateY(-16px) scale(1.03) rotate(0deg); opacity: 1; }
-  100% { left: 120%; transform: translateY(0) scale(0.95) rotate(2deg); opacity: 0.95; }
+.title3d {
+    text-align:center;
+    font-size:52px;
+    font-weight:900;
+    margin-top:12px;
+    margin-bottom:25px;
+    background: linear-gradient(90deg,#7ee8fa,#eec0c6);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    animation: float3D 4s ease-in-out infinite, titlepop 1s ease;
+    text-shadow: 0 0 25px rgba(255,255,255,0.3);
 }
 
-/* glass card */
 .card {
-  background: rgba(255,255,255,0.9);
-  border-radius: 12px;
-  padding: 18px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-  border: 1px solid rgba(0,0,0,0.06);
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+    padding:18px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.15);
+    width:94%;
+    margin:auto;
+    margin-bottom:20px;
+    box-shadow:0 0 12px rgba(255,255,255,0.15);
 }
 
-/* titles */
-.title {
-  font-size:34px;
-  font-weight:800;
-  color:#03396c;
-  margin: 8px 0 16px 0;
-  text-align:center;
+.section-title {
+    font-size:20px;
+    font-weight:700;
+    color:#eafaff;
+    margin-bottom:12px;
 }
 
-/* small label */
-.small-label {
-  color:#0b3b5a;
-  font-weight:600;
-  margin-bottom:8px;
+.label {
+    color:#d9e7ff;
+    font-weight:600;
 }
 
-/* radio alignment */
-.stRadio > div { display:flex !important; gap:8px !important; }
+.stRadio > div {
+    display:flex !important;
+    gap:12px !important;
+}
 
-/* submit */
 .stButton > button {
-  background: linear-gradient(90deg,#0066cc,#00a0ff);
-  color:white;
-  padding:10px 22px;
-  font-size:16px;
-  border-radius:10px;
-  font-weight:700;
+    background:linear-gradient(90deg,#00aaff,#33ddff);
+    color:white;
+    padding:10px 25px;
+    font-size:17px;
+    border-radius:10px;
+    font-weight:700;
+    transition:0.3s ease;
 }
-.stButton > button:hover { transform:scale(1.03); box-shadow: 0 10px 24px rgba(0,120,200,0.18); }
+.stButton > button:hover {
+    transform:scale(1.04);
+    box-shadow:0 8px 20px rgba(0,170,255,0.45);
+}
 
-@media (max-width: 760px) {
-  .plane { width: 120px; bottom: 46px; }
-  .runway { height: 160px; }
-}
 </style>
 """, unsafe_allow_html=True)
 
-# runway + plane HTML block (daytime)
-st.markdown('<div class="main-container">', unsafe_allow_html=True)
-st.markdown('<div class="runway-wrap">', unsafe_allow_html=True)
-st.markdown('''
-  <div class="runway">
-    <div class="grass-left"></div>
-    <div class="grass-right"></div>
-    <div class="threshold-left"></div>
-    <div class="threshold-right"></div>
 
-    <!-- runway lights (we place several lights using inline style) -->
-    <div class="runway-lights">
-''', unsafe_allow_html=True)
+# STARFIELD
+stars = [
+    (2,8,12,0),(3,15,50,0.4),(2,22,80,1.1),(3,30,35,0.7),
+    (2,40,10,0.2),(3,48,60,1.3),(2,55,85,0.5),(3,65,20,1.7),
+    (2,75,45,0.9),(3,82,70,1.9),(2,5,65,0.8),(3,28,22,1.5),
+    (2,52,40,0.6),(3,70,90,1.0),(2,88,55,1.8),(3,18,30,0.1),
+]
+for i,(size,l,t,d) in enumerate(stars):
+    st.markdown(
+        f"<div class='star' style='width:{size}px;height:{size}px;left:{l}%;top:{t}%;animation-delay:{d}s;'></div>",
+        unsafe_allow_html=True,
+    )
 
-# place lights at intervals (left & right)
-lights_html = ""
-for i in range(8):
-    left_pos = 6 + i*11  # percentage
-    right_pos = 78 - i*11
-    # left light
-    lights_html += f'<div class="light" style="left:{left_pos}%;"></div>'
-    # right light
-    lights_html += f'<div class="light" style="left:{right_pos}%;"></div>'
 
-st.markdown(lights_html, unsafe_allow_html=True)
-st.markdown('''
-    </div> <!-- runway-lights -->
-    <!-- plane SVG (simple) -->
-    <img class="plane" src="https://www.svgrepo.com/show/419539/airplane-plane.svg" alt="plane">
-  </div>
-''', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)  # close runway-wrap
+# TITLE
+st.markdown("""
+<h1 class="title3d">
+    ✈️ Airline Passenger Satisfaction Prediction
+</h1>
+""", unsafe_allow_html=True)
 
-# ---------------------------
-# Load model & preprocessor (cached)
-# ---------------------------
+
+# ------------------------------------------------------
+# Load ANN Model + Pipeline
+# ------------------------------------------------------
 @st.cache_resource
 def load_artifacts():
-    try:
-        model = load_model("best_airline_ann_model.h5")
-    except Exception as e:
-        # helpful debug message if model fails to load
-        st.error("Error loading Keras model: " + str(e))
-        raise
-
-    try:
-        pre = joblib.load("airline_preprocessor_pipeline.pkl")
-    except Exception as e:
-        st.error("Error loading preprocessor pipeline: " + str(e))
-        raise
-
+    model = load_model("best_airline_ann_model.h5")
+    pre = joblib.load("airline_preprocessor_pipeline.pkl")
     return model, pre
 
 model, preprocessor = load_artifacts()
 
-# ---------------------------
-# Helper: rating (1-5)
-# ---------------------------
+
+# ------------------------------------------------------
+# Rating input (1–5)  ← UPDATED
+# ------------------------------------------------------
 def rating(label, key):
-    st.markdown(f'<div class="small-label">{label}</div>', unsafe_allow_html=True)
-    return st.radio("", [1,2,3,4,5], horizontal=True, key=key, label_visibility="collapsed")
+    st.markdown(f"<div class='label'>{label}</div>", unsafe_allow_html=True)
+    return st.radio("", [1, 2, 3, 4, 5], horizontal=True, key=key, label_visibility="collapsed")
 
-# ---------------------------
-# Form (all features)
-# ---------------------------
+
+# ------------------------------------------------------
+# FORM — ALL 22 FEATURES
+# ------------------------------------------------------
 with st.form("airline_form"):
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="title">✈️ Airline Passenger Satisfaction Predictor</div>', unsafe_allow_html=True)
 
-    st.markdown('<div style="display:flex;gap:20px">', unsafe_allow_html=True)
+    # 👤 Passenger Information
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>👤 Passenger Information</div>", unsafe_allow_html=True)
+
     c1, c2 = st.columns(2)
-
     with c1:
         Gender = st.selectbox("Gender", ["Male","Female"])
-        Age = st.number_input("Age", min_value=1, max_value=120, value=30)
+        Age = st.number_input("Age", 1, 120, 30)
         Class = st.selectbox("Class", ["Eco","Eco Plus","Business"])
+
     with c2:
         CustomerType = st.selectbox("Customer Type", ["Loyal Customer","disloyal Customer"])
         TravelType = st.selectbox("Type of Travel", ["Business travel","Personal Travel"])
-        FlightDistance = st.number_input("Flight Distance", min_value=0, max_value=10000, value=500)
-    st.markdown('</div>', unsafe_allow_html=True)
+        FlightDistance = st.number_input("Flight Distance", 0, 10000, 500)
 
-    # Flight times
-    st.markdown('<hr>', unsafe_allow_html=True)
-    st.markdown('<div class="small-label">⏱ Flight Timing</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ⏱ Flight Timing
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>⏱ Flight Timing</div>", unsafe_allow_html=True)
+
     d1, d2 = st.columns(2)
-    DepDelay = d1.number_input("Departure Delay (min)", min_value=0, max_value=3000, value=0)
-    ArrDelay = d2.number_input("Arrival Delay (min)", min_value=0, max_value=3000, value=0)
+    DepDelay = d1.number_input("Departure Delay (min)", 0, 3000, 0)
+    ArrDelay = d2.number_input("Arrival Delay (min)", 0, 3000, 0)
 
-    # Ratings grid
-    st.markdown('<hr>', unsafe_allow_html=True)
-    st.markdown('<div class="small-label">⭐ Service Ratings (1–5)</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ⭐ Service Ratings (1–5)
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>⭐ Service Ratings (1–5)</div>", unsafe_allow_html=True)
+
     r1, r2, r3 = st.columns(3)
 
     with r1:
@@ -323,15 +239,16 @@ with st.form("airline_form"):
         BookingEase = rating("Ease of Online booking", "booking")
         Baggage = rating("Baggage handling", "baggage")
 
-    st.markdown('</div>', unsafe_allow_html=True)  # close card
+    st.markdown("</div>", unsafe_allow_html=True)
 
     submit = st.form_submit_button("🔮 Predict Satisfaction")
 
-# ---------------------------
-# Prediction logic
-# ---------------------------
+
+# ------------------------------------------------------
+# PREDICTION LOGIC
+# ------------------------------------------------------
 if submit:
-    # prepare dataframe in the same column order your pipeline expects
+
     df = pd.DataFrame({
         "Gender":[Gender],
         "Customer Type":[CustomerType],
@@ -358,30 +275,15 @@ if submit:
         "Inflight service":[InflightService],
     })
 
-    # transform and predict
-    try:
-        X = preprocessor.transform(df).astype(float)
-    except Exception as e:
-        st.error("Preprocessor transform failed: " + str(e))
-        st.stop()
+    X = preprocessor.transform(df).astype(float)
+    prob = float(model.predict(X, verbose=0).squeeze())
 
-    try:
-        prob = float(model.predict(X, verbose=0).squeeze())
-    except Exception as e:
-        st.error("Model prediction failed: " + str(e))
-        st.stop()
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>🎯 Prediction Result</div>", unsafe_allow_html=True)
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<div class="small-label">🎯 Prediction Result</div>', unsafe_allow_html=True)
     if prob >= 0.5:
-        st.success(f"🙂 Passenger is likely SATISFIED — score = {prob:.3f}")
+        st.success(f"🙂 Passenger is likely SATISFIED (score = {prob:.3f})")
     else:
-        st.error(f"☹️ Passenger is NOT satisfied — score = {prob:.3f}")
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.error(f"☹️ Passenger is NOT satisfied (score = {prob:.3f})")
 
-# ---------------------------
-# Footer prayer lines
-# ---------------------------
-st.write("")
-st.write("Radhe Radhe 🙏 Jai Shri Radhe Krishna 🌸")
-st.write("Narayana Akhila Guru Bhagavan Sharanam 🕉️")
+    st.markdown("</div>", unsafe_allow_html=True)
