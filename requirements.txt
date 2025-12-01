@@ -1,7 +1,0 @@
-streamlit
-pandas
-numpy
-scikit-learn
-tensorflow==2.15.0
-joblib
-protobuf==3.20.*
