@@ -3,7 +3,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 logging.getLogger("absl").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", message="missing ScriptRunContext")
 
-sys.path.append(os.path.dirname(__file__))  # IMPORTANT for custom transformer on Streamlit Cloud
+sys.path.append(os.path.dirname(__file__))  # Fix for custom transformer on Streamlit Cloud
 
 import streamlit as st
 import pandas as pd
@@ -36,61 +36,62 @@ class LabelEncoderTransformer(BaseEstimator, TransformerMixin):
 
 
 # ------------------------------------------------------
-# Streamlit Page Config
+# Streamlit Page Settings
 # ------------------------------------------------------
 st.set_page_config(page_title="Airline Satisfaction", page_icon="✈️", layout="wide")
 
 
 # ------------------------------------------------------
-# FLIGHT-THEMED BACKGROUND
+# BEAUTIFUL FLIGHT THEME UI (Background + Plane + Clouds)
 # ------------------------------------------------------
 st.markdown("""
 <style>
 
-body {
-    margin: 0;
-    padding: 0;
-    background: linear-gradient(#88ccee, #e6f7ff);
-    background-size: cover;
+html, body, [data-testid="stAppViewContainer"] {
+    background: linear-gradient(#88ccee, #e6f7ff) !important;
+    background-attachment: fixed;
+    height: 100%;
     overflow-x: hidden;
     font-family: "Poppins", sans-serif;
 }
 
-/* CLOUD ANIMATION */
+/* CLOUDS */
 .cloud {
     position: fixed;
     background: white;
     border-radius: 50px;
-    opacity: 0.8;
+    opacity: 0.72;
     animation: floatCloud 35s linear infinite;
+    z-index: -1;
 }
 
 @keyframes floatCloud {
-    from { transform: translateX(-200px); }
-    to   { transform: translateX(140%); }
+    from { transform: translateX(-250px); }
+    to   { transform: translateX(150%); }
 }
 
-/* AIRPLANE SILHOUETTE */
+/* AIRPLANE */
 .plane {
     position: fixed;
-    width: 120px;
-    top: 20%;
+    width: 140px;
+    top: 22%;
     left: -200px;
     animation: flyPlane 18s linear infinite;
+    z-index: -1;
 }
 
 @keyframes flyPlane {
-    0%   { transform: translateX(-200px) rotate(0deg); }
-    50%  { transform: translateX(90vw) rotate(2deg); }
-    100% { transform: translateX(110vw) rotate(0deg); }
+    0%   { transform: translateX(-200px) rotate(0deg); opacity: 0.7; }
+    50%  { transform: translateX(75vw) rotate(3deg); opacity: 1; }
+    100% { transform: translateX(110vw) rotate(0deg); opacity: 0.7; }
 }
 
-/* 3D Title */
+/* TITLE */
 .title3d {
     text-align:center;
-    font-size:50px;
+    font-size:52px;
     font-weight:900;
-    margin-top:20px;
+    margin-bottom:25px;
     background: linear-gradient(90deg,#004aad,#00d4ff);
     -webkit-background-clip:text;
     -webkit-text-fill-color:transparent;
@@ -104,20 +105,19 @@ body {
     100% { transform:translateY(0px); }
 }
 
-/* Glass card */
+/* GLASS CARD */
 .card {
     background: rgba(255,255,255,0.45);
     backdrop-filter: blur(12px);
-    padding:18px;
+    padding:20px;
     border-radius:14px;
     border:1px solid rgba(255,255,255,0.4);
-    width:94%;
+    box-shadow:0 0 12px rgba(0,0,0,0.18);
+    width:95%;
     margin:auto;
     margin-bottom:20px;
-    box-shadow:0 0 12px rgba(0,0,0,0.18);
 }
 
-/* Section Title */
 .section-title {
     font-size:20px;
     font-weight:700;
@@ -125,23 +125,23 @@ body {
     margin-bottom:12px;
 }
 
-/* Labels */
 .label {
     color:#003366;
     font-weight:600;
 }
 
+/* Rating buttons */
 .stRadio > div {
     display:flex !important;
     gap:12px !important;
 }
 
-/* Predict Button */
+/* Button */
 .stButton > button {
     background:linear-gradient(90deg,#004aad,#00b7ff);
     color:white;
-    padding:10px 25px;
-    font-size:17px;
+    padding:10px 28px;
+    font-size:18px;
     border-radius:10px;
     font-weight:700;
     transition:0.4s ease;
@@ -156,38 +156,34 @@ body {
 """, unsafe_allow_html=True)
 
 
-# ------------------------------------------------------
-# CLOUDS + FLIGHT ANIMATION RENDER
-# ------------------------------------------------------
-cloud_positions = [
+# CLOUDS
+clouds = [
     (200, 10), (150, 30), (220, 55),
     (180, 70), (140, 85), (210, 40),
 ]
-
-for i, (size, top) in enumerate(cloud_positions):
+for (size, top) in clouds:
     st.markdown(
         f"<div class='cloud' style='width:{size}px;height:{size/2}px;top:{top}%;'></div>",
         unsafe_allow_html=True,
     )
 
-# Airplane (SVG silhouette)
+# AIRPLANE
 st.markdown("""
-<img class="plane" src="https://www.svgrepo.com/show/419539/airplane-plane.svg">
+<img class="plane" 
+     src="https://www.svgrepo.com/show/419539/airplane-plane.svg">
 """, unsafe_allow_html=True)
 
 
-# ------------------------------------------------------
-# Title
-# ------------------------------------------------------
+# TITLE
 st.markdown("""
 <h1 class="title3d">
-    ✈️ Airline Passenger Satisfaction Prediction
+✈️ Airline Passenger Satisfaction Prediction
 </h1>
 """, unsafe_allow_html=True)
 
 
 # ------------------------------------------------------
-# Load Model + Preprocessor
+# Load ANN model + Preprocessor
 # ------------------------------------------------------
 @st.cache_resource
 def load_artifacts():
@@ -199,46 +195,44 @@ model, preprocessor = load_artifacts()
 
 
 # ------------------------------------------------------
-# Rating Selector (1–5)
+# Rating input (1–5)
 # ------------------------------------------------------
 def rating(label, key):
     st.markdown(f"<div class='label'>{label}</div>", unsafe_allow_html=True)
-    return st.radio("", [1, 2, 3, 4, 5], horizontal=True, key=key, label_visibility="collapsed")
+    return st.radio("", [1,2,3,4,5], horizontal=True, key=key, label_visibility="collapsed")
 
 
 # ------------------------------------------------------
-# FORM
+# FORM — ALL INPUT FEATURES
 # ------------------------------------------------------
 with st.form("airline_form"):
 
-    # Passenger Block
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>👤 Passenger Information</div>", unsafe_allow_html=True)
 
     c1, c2 = st.columns(2)
     with c1:
-        Gender = st.selectbox("Gender", ["Male","Female"])
+        Gender = st.selectbox("Gender", ["Male", "Female"])
         Age = st.number_input("Age", 1, 120, 30)
-        Class = st.selectbox("Class", ["Eco","Eco Plus","Business"])
-
+        Class = st.selectbox("Class", ["Eco", "Eco Plus", "Business"])
     with c2:
-        CustomerType = st.selectbox("Customer Type", ["Loyal Customer","disloyal Customer"])
-        TravelType = st.selectbox("Type of Travel", ["Business travel","Personal Travel"])
+        CustomerType = st.selectbox("Customer Type", ["Loyal Customer", "disloyal Customer"])
+        TravelType = st.selectbox("Type of Travel", ["Business travel", "Personal Travel"])
         FlightDistance = st.number_input("Flight Distance", 0, 10000, 500)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Timing Block
+    ##################################################
+
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>⏱ Flight Timing</div>", unsafe_allow_html=True)
-
     d1, d2 = st.columns(2)
     DepDelay = d1.number_input("Departure Delay (min)", 0, 3000, 0)
     ArrDelay = d2.number_input("Arrival Delay (min)", 0, 3000, 0)
-
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Ratings Block
+    ##################################################
+
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>⭐ Service Ratings (1–5)</div>", unsafe_allow_html=True)
 
@@ -271,7 +265,7 @@ with st.form("airline_form"):
 
 
 # ------------------------------------------------------
-# Prediction Logic
+# Prediction
 # ------------------------------------------------------
 if submit:
 
