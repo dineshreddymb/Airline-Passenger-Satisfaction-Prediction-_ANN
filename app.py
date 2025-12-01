@@ -14,7 +14,7 @@ from sklearn.preprocessing import LabelEncoder
 
 
 # ------------------------------------------------------
-# Custom LabelEncoder Transformer (same as training)
+# Custom LabelEncoder Transformer
 # ------------------------------------------------------
 class LabelEncoderTransformer(BaseEstimator, TransformerMixin):
     def __init__(self):
@@ -36,82 +36,98 @@ class LabelEncoderTransformer(BaseEstimator, TransformerMixin):
 
 
 # ------------------------------------------------------
-# Streamlit UI Configuration
+# Streamlit Page Config
 # ------------------------------------------------------
 st.set_page_config(page_title="Airline Satisfaction", page_icon="✈️", layout="wide")
 
 
 # ------------------------------------------------------
-# Starfield Background + 3D Floating Title + Glass UI
+# FLIGHT-THEMED BACKGROUND
 # ------------------------------------------------------
 st.markdown("""
 <style>
 
 body {
-    background: black !important;
-    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(#88ccee, #e6f7ff);
+    background-size: cover;
+    overflow-x: hidden;
     font-family: "Poppins", sans-serif;
 }
 
-@keyframes starPulse {
-    0% { opacity: 0.2; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.3); }
-    100% { opacity: 0.2; transform: scale(1); }
-}
-
-.star {
+/* CLOUD ANIMATION */
+.cloud {
     position: fixed;
     background: white;
-    border-radius: 50%;
-    box-shadow: 0 0 6px rgba(255,255,255,0.8);
-    animation: starPulse 3s infinite ease-in-out;
+    border-radius: 50px;
+    opacity: 0.8;
+    animation: floatCloud 35s linear infinite;
 }
 
-@keyframes float3D {
-    0%   { transform: translateY(0px) rotateX(0deg); }
-    50%  { transform: translateY(-18px) rotateX(8deg); }
-    100% { transform: translateY(0px) rotateX(0deg); }
+@keyframes floatCloud {
+    from { transform: translateX(-200px); }
+    to   { transform: translateX(140%); }
 }
 
-@keyframes titlepop {
-    0% { opacity:0; transform:scale(0.6); }
-    100% { opacity:1; transform:scale(1); }
+/* AIRPLANE SILHOUETTE */
+.plane {
+    position: fixed;
+    width: 120px;
+    top: 20%;
+    left: -200px;
+    animation: flyPlane 18s linear infinite;
 }
 
+@keyframes flyPlane {
+    0%   { transform: translateX(-200px) rotate(0deg); }
+    50%  { transform: translateX(90vw) rotate(2deg); }
+    100% { transform: translateX(110vw) rotate(0deg); }
+}
+
+/* 3D Title */
 .title3d {
     text-align:center;
-    font-size:52px;
+    font-size:50px;
     font-weight:900;
-    margin-top:12px;
-    margin-bottom:25px;
-    background: linear-gradient(90deg,#7ee8fa,#eec0c6);
+    margin-top:20px;
+    background: linear-gradient(90deg,#004aad,#00d4ff);
     -webkit-background-clip:text;
     -webkit-text-fill-color:transparent;
-    animation: float3D 4s ease-in-out infinite, titlepop 1s ease;
-    text-shadow: 0 0 25px rgba(255,255,255,0.3);
+    text-shadow:0 0 18px rgba(0,0,0,0.25);
+    animation: titleFloat 4s infinite ease-in-out;
 }
 
+@keyframes titleFloat {
+    0% { transform:translateY(0px); }
+    50% { transform:translateY(-12px); }
+    100% { transform:translateY(0px); }
+}
+
+/* Glass card */
 .card {
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.45);
+    backdrop-filter: blur(12px);
     padding:18px;
     border-radius:14px;
-    border:1px solid rgba(255,255,255,0.15);
+    border:1px solid rgba(255,255,255,0.4);
     width:94%;
     margin:auto;
     margin-bottom:20px;
-    box-shadow:0 0 12px rgba(255,255,255,0.15);
+    box-shadow:0 0 12px rgba(0,0,0,0.18);
 }
 
+/* Section Title */
 .section-title {
     font-size:20px;
     font-weight:700;
-    color:#eafaff;
+    color:#003366;
     margin-bottom:12px;
 }
 
+/* Labels */
 .label {
-    color:#d9e7ff;
+    color:#003366;
     font-weight:600;
 }
 
@@ -120,39 +136,49 @@ body {
     gap:12px !important;
 }
 
+/* Predict Button */
 .stButton > button {
-    background:linear-gradient(90deg,#00aaff,#33ddff);
+    background:linear-gradient(90deg,#004aad,#00b7ff);
     color:white;
     padding:10px 25px;
     font-size:17px;
     border-radius:10px;
     font-weight:700;
-    transition:0.3s ease;
+    transition:0.4s ease;
 }
+
 .stButton > button:hover {
-    transform:scale(1.04);
-    box-shadow:0 8px 20px rgba(0,170,255,0.45);
+    transform:scale(1.05);
+    box-shadow:0 8px 25px rgba(0,100,200,0.35);
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 
-# STARFIELD
-stars = [
-    (2,8,12,0),(3,15,50,0.4),(2,22,80,1.1),(3,30,35,0.7),
-    (2,40,10,0.2),(3,48,60,1.3),(2,55,85,0.5),(3,65,20,1.7),
-    (2,75,45,0.9),(3,82,70,1.9),(2,5,65,0.8),(3,28,22,1.5),
-    (2,52,40,0.6),(3,70,90,1.0),(2,88,55,1.8),(3,18,30,0.1),
+# ------------------------------------------------------
+# CLOUDS + FLIGHT ANIMATION RENDER
+# ------------------------------------------------------
+cloud_positions = [
+    (200, 10), (150, 30), (220, 55),
+    (180, 70), (140, 85), (210, 40),
 ]
-for i,(size,l,t,d) in enumerate(stars):
+
+for i, (size, top) in enumerate(cloud_positions):
     st.markdown(
-        f"<div class='star' style='width:{size}px;height:{size}px;left:{l}%;top:{t}%;animation-delay:{d}s;'></div>",
+        f"<div class='cloud' style='width:{size}px;height:{size/2}px;top:{top}%;'></div>",
         unsafe_allow_html=True,
     )
 
+# Airplane (SVG silhouette)
+st.markdown("""
+<img class="plane" src="https://www.svgrepo.com/show/419539/airplane-plane.svg">
+""", unsafe_allow_html=True)
 
-# TITLE
+
+# ------------------------------------------------------
+# Title
+# ------------------------------------------------------
 st.markdown("""
 <h1 class="title3d">
     ✈️ Airline Passenger Satisfaction Prediction
@@ -161,7 +187,7 @@ st.markdown("""
 
 
 # ------------------------------------------------------
-# Load ANN Model + Pipeline
+# Load Model + Preprocessor
 # ------------------------------------------------------
 @st.cache_resource
 def load_artifacts():
@@ -173,7 +199,7 @@ model, preprocessor = load_artifacts()
 
 
 # ------------------------------------------------------
-# Rating input (1–5)  ← UPDATED
+# Rating Selector (1–5)
 # ------------------------------------------------------
 def rating(label, key):
     st.markdown(f"<div class='label'>{label}</div>", unsafe_allow_html=True)
@@ -181,11 +207,11 @@ def rating(label, key):
 
 
 # ------------------------------------------------------
-# FORM — ALL 22 FEATURES
+# FORM
 # ------------------------------------------------------
 with st.form("airline_form"):
 
-    # 👤 Passenger Information
+    # Passenger Block
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>👤 Passenger Information</div>", unsafe_allow_html=True)
 
@@ -202,7 +228,7 @@ with st.form("airline_form"):
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ⏱ Flight Timing
+    # Timing Block
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>⏱ Flight Timing</div>", unsafe_allow_html=True)
 
@@ -212,7 +238,7 @@ with st.form("airline_form"):
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ⭐ Service Ratings (1–5)
+    # Ratings Block
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>⭐ Service Ratings (1–5)</div>", unsafe_allow_html=True)
 
@@ -245,7 +271,7 @@ with st.form("airline_form"):
 
 
 # ------------------------------------------------------
-# PREDICTION LOGIC
+# Prediction Logic
 # ------------------------------------------------------
 if submit:
 
