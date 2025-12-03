@@ -3,7 +3,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 logging.getLogger("absl").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore", message="missing ScriptRunContext")
 
-sys.path.append(os.path.dirname(__file__))  # IMPORTANT for custom transformer on Streamlit Cloud
+sys.path.append(os.path.dirname(__file__))  # Needed for custom class
 
 import streamlit as st
 import pandas as pd
@@ -14,7 +14,7 @@ from sklearn.preprocessing import LabelEncoder
 
 
 # ------------------------------------------------------
-# Custom LabelEncoder Transformer (same as training)
+# Custom LabelEncoderTransformer
 # ------------------------------------------------------
 class LabelEncoderTransformer(BaseEstimator, TransformerMixin):
     def __init__(self):
@@ -36,13 +36,13 @@ class LabelEncoderTransformer(BaseEstimator, TransformerMixin):
 
 
 # ------------------------------------------------------
-# Streamlit UI Configuration
+# Streamlit Page Setup
 # ------------------------------------------------------
 st.set_page_config(page_title="Airline Satisfaction", page_icon="✈️", layout="wide")
 
 
 # ------------------------------------------------------
-# Starfield Background + 3D Floating Title + Glass UI
+# Background + UI Styling
 # ------------------------------------------------------
 st.markdown("""
 <style>
@@ -53,12 +53,12 @@ body {
     font-family: "Poppins", sans-serif;
 }
 
+/* Stars Animation */
 @keyframes starPulse {
     0% { opacity: 0.2; transform: scale(1); }
     50% { opacity: 1; transform: scale(1.3); }
     100% { opacity: 0.2; transform: scale(1); }
 }
-
 .star {
     position: fixed;
     background: white;
@@ -67,17 +67,16 @@ body {
     animation: starPulse 3s infinite ease-in-out;
 }
 
+/* 3D Title */
 @keyframes float3D {
     0%   { transform: translateY(0px) rotateX(0deg); }
     50%  { transform: translateY(-18px) rotateX(8deg); }
     100% { transform: translateY(0px) rotateX(0deg); }
 }
-
 @keyframes titlepop {
     0% { opacity:0; transform:scale(0.6); }
     100% { opacity:1; transform:scale(1); }
 }
-
 .title3d {
     text-align:center;
     font-size:52px;
@@ -91,6 +90,7 @@ body {
     text-shadow: 0 0 25px rgba(255,255,255,0.3);
 }
 
+/* Cards */
 .card {
     background: rgba(255,255,255,0.05);
     backdrop-filter: blur(10px);
@@ -115,11 +115,7 @@ body {
     font-weight:600;
 }
 
-.stRadio > div {
-    display:flex !important;
-    gap:12px !important;
-}
-
+/* Button */
 .stButton > button {
     background:linear-gradient(90deg,#00aaff,#33ddff);
     color:white;
@@ -143,7 +139,6 @@ stars = [
     (2,8,12,0),(3,15,50,0.4),(2,22,80,1.1),(3,30,35,0.7),
     (2,40,10,0.2),(3,48,60,1.3),(2,55,85,0.5),(3,65,20,1.7),
     (2,75,45,0.9),(3,82,70,1.9),(2,5,65,0.8),(3,28,22,1.5),
-    (2,52,40,0.6),(3,70,90,1.0),(2,88,55,1.8),(3,18,30,0.1),
 ]
 for i,(size,l,t,d) in enumerate(stars):
     st.markdown(
@@ -154,14 +149,12 @@ for i,(size,l,t,d) in enumerate(stars):
 
 # TITLE
 st.markdown("""
-<h1 class="title3d">
-    ✈️ Airline Passenger Satisfaction Prediction
-</h1>
+<h1 class="title3d">✈️ Airline Passenger Satisfaction Prediction</h1>
 """, unsafe_allow_html=True)
 
 
 # ------------------------------------------------------
-# Load ANN Model + Pipeline
+# Load Model + Pipeline
 # ------------------------------------------------------
 @st.cache_resource
 def load_artifacts():
@@ -173,19 +166,19 @@ model, preprocessor = load_artifacts()
 
 
 # ------------------------------------------------------
-# Rating input (1–5)  ← UPDATED
+# Rating Slider (0–5)
 # ------------------------------------------------------
 def rating(label, key):
     st.markdown(f"<div class='label'>{label}</div>", unsafe_allow_html=True)
-    return st.radio("", [1, 2, 3, 4, 5], horizontal=True, key=key, label_visibility="collapsed")
+    return st.slider("", 0, 5, 3, key=key, label_visibility="collapsed")
 
 
 # ------------------------------------------------------
-# FORM — ALL 22 FEATURES
+# MAIN FORM
 # ------------------------------------------------------
 with st.form("airline_form"):
 
-    # 👤 Passenger Information
+    # Passenger Info
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>👤 Passenger Information</div>", unsafe_allow_html=True)
 
@@ -194,27 +187,23 @@ with st.form("airline_form"):
         Gender = st.selectbox("Gender", ["Male","Female"])
         Age = st.number_input("Age", 1, 120, 30)
         Class = st.selectbox("Class", ["Eco","Eco Plus","Business"])
-
     with c2:
         CustomerType = st.selectbox("Customer Type", ["Loyal Customer","disloyal Customer"])
         TravelType = st.selectbox("Type of Travel", ["Business travel","Personal Travel"])
         FlightDistance = st.number_input("Flight Distance", 0, 10000, 500)
-
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ⏱ Flight Timing
+    # Timing
     st.markdown("<div class='card'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>⏱ Flight Timing</div>", unsafe_allow_html=True)
-
     d1, d2 = st.columns(2)
     DepDelay = d1.number_input("Departure Delay (min)", 0, 3000, 0)
     ArrDelay = d2.number_input("Arrival Delay (min)", 0, 3000, 0)
-
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ⭐ Service Ratings (1–5)
+    # Ratings
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.markdown("<div class='section-title'>⭐ Service Ratings (1–5)</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>⭐ Service Ratings (0–5)</div>", unsafe_allow_html=True)
 
     r1, r2, r3 = st.columns(3)
 
@@ -245,7 +234,7 @@ with st.form("airline_form"):
 
 
 # ------------------------------------------------------
-# PREDICTION LOGIC
+# Prediction
 # ------------------------------------------------------
 if submit:
 
