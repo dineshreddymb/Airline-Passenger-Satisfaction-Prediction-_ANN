@@ -236,6 +236,9 @@ with st.form("airline_form"):
 # ------------------------------------------------------
 # Prediction
 # ------------------------------------------------------
+# ------------------------------------------------------
+# ✨ PREMIUM ANIMATED PREDICTION RESULT
+# ------------------------------------------------------
 if submit:
 
     df = pd.DataFrame({
@@ -263,6 +266,96 @@ if submit:
         "Online boarding":[Boarding],
         "Inflight service":[InflightService],
     })
+
+    X = preprocessor.transform(df).astype(float)
+    prob = float(model.predict(X, verbose=0).squeeze())
+
+    # --- Animated CSS for Result ---
+    st.markdown("""
+    <style>
+    .result-box {
+        padding: 25px;
+        border-radius: 15px;
+        backdrop-filter: blur(12px);
+        animation: popIn 0.8s ease both;
+        margin-top: 20px;
+        text-align: center;
+        border: 1px solid rgba(255,255,255,0.15);
+        box-shadow: 0 0 20px rgba(255,255,255,0.15);
+    }
+
+    @keyframes popIn {
+        0% { transform: scale(0.6); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .meter {
+        width: 80%;
+        height: 18px;
+        border-radius: 10px;
+        margin: auto;
+        background: rgba(255,255,255,0.15);
+        overflow: hidden;
+        margin-top: 12px;
+        margin-bottom: 12px;
+    }
+
+    .meter-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg,#00eaff,#0077ff);
+        border-radius: 10px;
+        animation: fillAnim 1.5s ease forwards;
+    }
+
+    @keyframes fillAnim {
+        from { width: 0%; }
+        to { width: VAR_WIDTH%; }
+    }
+
+    .badge {
+        font-size: 26px;
+        font-weight: 900;
+        background: linear-gradient(90deg,#00f2fe,#4facfe);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 25px rgba(0,200,255,0.4);
+        animation: pulseBadge 2s infinite ease-in-out;
+    }
+
+    @keyframes pulseBadge {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.12); }
+        100% { transform: scale(1); }
+    }
+    </style>
+    """.replace("VAR_WIDTH", str(int(prob * 100))), unsafe_allow_html=True)
+
+    # --- RESULT BOX ---
+    st.markdown("<div class='result-box'>", unsafe_allow_html=True)
+
+    # Badge + Progress Meter
+    if prob >= 0.5:
+        st.markdown("<div class='badge'>🙂 SATISFIED PASSENGER</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='badge'>☹️ NOT SATISFIED</div>", unsafe_allow_html=True)
+
+    # Meter Bar
+    st.markdown("""
+        <div class='meter'>
+            <div class='meter-fill'></div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Score (Glow Text)
+    st.markdown(
+        f"<h3 style='text-align:center; color:#a8f7ff; "
+        f"text-shadow:0 0 10px #00eaff;'>Prediction Score: {prob:.3f}</h3>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
 
     X = preprocessor.transform(df).astype(float)
     prob = float(model.predict(X, verbose=0).squeeze())
