@@ -158,8 +158,8 @@ st.markdown("""
 # ------------------------------------------------------
 @st.cache_resource
 def load_artifacts():
-    model = load_model("best_airline_ann_model.h5")
-    pre = joblib.load("airline_preprocessor_pipeline.pkl")
+    model = load_model("best_airline_ann_model.keras")
+    pre = joblib.load("airline_preprocessor_pipeline2.pkl")
     return model, pre
 
 model, preprocessor = load_artifacts()
